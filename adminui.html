@@ -1,0 +1,280 @@
+<!doctype html>
+<html class="no-js" lang="">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title></title>
+  <meta name="description" content="">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="styles/vendor/normalize.min.css">
+  <link rel="stylesheet" href="styles/master.min.css">
+  <link href="https://fonts.googleapis.com/css?family=Libre+Baskerville:400,700" rel="stylesheet" type="text/css">
+  <script src="scripts/vendor/modernizr-2.8.3.min.js"></script>
+  <script src="scripts/vendor/hammer.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.10/vue.common.dev.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/css/bootstrap.css" integrity="sha256-A47OwxL/nAN0ydiDFTSGX7ftbfTJTKgiJ0zqCuTPDh4=" crossorigin="anonymous" />
+  <link href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+  <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.15/lodash.core.js" integrity="sha256-tsIbwIT+4qFYQl3lJqYOZst6ot+JaR73T5eusuTukXM=" crossorigin="anonymous"></script> -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.15/lodash.js" integrity="sha256-kzv+r6dLqmz7iYuR2OdwUgl4X5RVsoENBzigdF5cxtU=" crossorigin="anonymous"></script>
+  <style>
+    .question:nth-of-type(even) {
+      background: #fbfbff;
+    }
+    .question:nth-of-type(odd) .answer {
+      background: #fbfbff;
+    }
+    span { 
+      color: #ccc;
+    }
+    button {
+      background: #eee;
+      border: none;
+      border-radius: 4px;
+    }
+    .hover {
+      transition: .2s ease all;
+    }
+    .hover:hover {
+      color: rgb(61, 61, 255);
+    }
+    .w-3 {
+      width: 3rem;
+    }
+  </style>
+</head>
+
+<body>
+
+  <main id="page_home" class="container">
+
+    <section id="section_0" class="bg-primary p-4">
+      <h1 class="text-white">
+        Presenter App Admin UI
+      </h1>
+    </section>
+
+    <section class="list-group" id="questions">
+
+      <div v-for="(question,qi) in questions" class="list-group-item question" :class=" question.changed ? 'border-success' : 'border-black'">
+        <div class="d-flex w-100 justify-content-between">
+          <div>
+            <span>Question <input :value="qi + 1" type="number" min="1" :max="questions.length"  @change="moveitem(qi,$event)" class="w-3 bg-transparent border-0"></input> of {{ questions.length }}</span>
+            <h2 contenteditable class="hover" @blur="savequestion" :question="qi">{{ question.question }}</h2>  
+          </div>
+          <i class="fa fa-trash align-top hover" aria-hidden="true" @click="deleteitem(qi)"></i>
+          <!-- <i class="fa fa-bars align-top hover" aria-hidden="true" @click="moveitem(qi)"></i> -->
+        </div>
+
+        <span>Type of Answers</span>
+        <h4>{{ question.inputtype }}</h4>
+
+        <span v-if="question.possibleanswers[0]">Answers</span>
+        <ol class="list-group answers" v-if="question.possibleanswers[0]">
+          <li v-for="(answer,ai) in question.possibleanswers" class="list-group-item answer">
+            <h4 contenteditable @blur="saveanswer" class="hover" :question="qi" :answer="ai">{{ answer }}</h4>
+          </li>
+         </ol> 
+         
+         <!-- TODO:  above is causing an issue  - still need to figure out what-->
+
+      </div>
+  
+      <div id="newquestion" class="list-group-item bg-primary text-white">
+        <h3 class="toggletrigger" @click="formtoggle">Add a New Question</h3>
+        <form class="togglehidden" v-if="formvisible" id="nqform">
+          <h6 class="mb-1 mt-2">Question</h6>
+          <input v-model="form.question" type="text" class="text-body w-100 rounded border-0 px-2 py-1"></input>
+          <h6 class="mb-1 mt-3">Type of Answers</h6>
+          <select type="radio" v-model="form.inputtype" class="hover">
+            <option value="Single Choice">Single Choice</option>
+            <option value="Multiple Choice">Multiple Choice</option>
+            <option value="Text">Text</option>
+          </select>
+          <div v-if="form.inputtype !== 'Text'">
+            <h6 class="mb-1 mt-2">Answers</h6>
+            <ul class="answerlist list-group text-body mt-0">
+              <li contenteditable v-for="answer in form.possibleanswers" class="list-group-item px-2 py-1">{{ answer }}</li>
+            </ul>
+            <input v-model="form.newanswer[0]" type="text" placeholder="Add Answer" class="text-body d-block w-100 rounded border-0 p-1"></input>
+            <button @click.prevent="addanswer" class="d-block mt-1 hover">Save New Answer</button>
+            
+          </div>
+          <button @click.prevent="addquestion" class="d-block mt-4 hover">Add Question</button>
+        </form>
+      </div>
+      <button @click.prevent="savedatabase" class="d-block mt-4 hover py-2">
+        <h4>
+          Save to Database
+        </h4>
+      </button>
+
+    </section>
+
+  </main>
+
+
+
+  <script src="https://code.jquery.com/jquery-3.2.1.min.js"
+    integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+  <script>
+    window.jQuery || document.write('<script src="js/vendor/jquery-3.2.1.min.js"><\/script>')
+
+  </script>
+
+  <script src="https://www.gstatic.com/firebasejs/4.5.0/firebase.js"></script>
+
+  <script>
+    // Your web app's Firebase configuration
+    var firebaseConfig = {
+      apiKey: "AIzaSyADsCeNsb2yV8AIN-TTmoLsfhZ_ESrsi8M",
+      authDomain: "test-swipe-app.firebaseapp.com",
+      databaseURL: "https://test-swipe-app.firebaseio.com",
+      projectId: "test-swipe-app",
+      storageBucket: "test-swipe-app.appspot.com",
+      messagingSenderId: "513276763632",
+      appId: "1:513276763632:web:d94bea88ed80c82b815135",
+      measurementId: "G-3Z5SCRNLB0"
+    };
+    firebase.initializeApp(firebaseConfig);
+
+    var db = firebase.database();
+    
+    var questions = [];
+    var qref = firebase.database().ref('/questions');
+    qref.once('value').then(function(snapshot) {
+      snapshot.val().forEach( function(a, i) { 
+        // if ( i !== 0) { 
+          a !== undefined ? questions.push(a) : null;
+          console.log(questions[i])
+        // }
+      });
+      return questions;
+    });
+
+
+    new Vue({
+      el: '#page_home',
+      data: function () {
+        return {
+          name: '',
+          questions: [
+            {
+            question: "What do you hope to learn today? (select one)",
+            possibleanswers: ["All the things", "One of the things"],
+            inputtype: "Single Choice",
+            }, 
+            {
+              question: "What about tomorrow?",
+              inputtype: "Multiple Choice",
+              possibleanswers: ["UI", "UX", "VR"],
+            }
+          ],
+          form:  
+            {
+              question: "",
+              inputtype: "Single Choice",
+              possibleanswers: [ ],
+              newanswer: [
+                ''
+              ]
+            },
+          formvisible: false,
+
+        }
+      },
+      methods: {
+        formtoggle: function() {
+          this.formvisible === false ? this.formvisible = true : this.formvisible = false;
+
+        },
+        test: function() {
+          this.check = true, 
+          this.textcheck = this.form.inputtype === 'Text' ? true : false;
+          this.form.question.length === 0 ? this.check = false : null;
+          this.form.possibleanswers.length === 0 && !this.textcheck ? this.check = false : null;
+        },
+        addquestion: function() {
+          this.test();
+          this.textcheck ? this.form.possibleanswers = [''] : null;
+          if (this.check === true) {
+            this.questions.push( this.copy(this.form) )
+            this.form.question = '';
+            this.form.inputtype = 'Single Choice';
+            this.form.newanswer[0] = '';
+            this.form.possibleanswers = [];
+
+          }
+          // this.updateindex();
+
+        },
+        addanswer: function() {
+          if (this.form.newanswer[0] !== '') {
+            this.form.possibleanswers.push( this.copy(this.form.newanswer[0]) )
+            this.form.newanswer[0] = '';
+
+          }
+        },
+        updateindex: function(){
+          this.questions.forEach(function(q,i){
+            q.changed = false;
+          })
+
+        },
+        deleteitem: function(i){
+          window.confirm("Delete this question?") ?
+          this.questions.splice(i,1) : null;
+        },
+        savequestion: function(th){
+          let thi = th.target.attributes;
+          this.questions[thi.question.value].question = th.target.innerText;
+          this.questions[thi.question.value].changed = true;
+        },
+        saveanswer: function(th){
+          let thi = th.target.attributes;
+          this.questions[thi.question.value].possibleanswers[thi.answer.value] = th.target.innerText;
+          this.questions[thi.question.value].changed = true;
+        },
+        copy: function(obj) {
+          return JSON.parse(JSON.stringify(obj));
+
+        },
+        moveitem: function(from,to){
+          // console.log(th);
+          to = to.target.value - 1;
+          console.log(`moving ${this.questions[from].question} from ${from} to ${to}`);
+          let temp = this.questions.splice(from, 1)
+          this.questions.splice(to, 0, temp[0])
+          // th.target.attributes.ind = th.target.value;
+        },
+        savedatabase: function() {
+          window.confirm("Save to the Database?") ?
+          qref.set(this.questions) &
+          this.questions.forEach(a=>a.changed=false) : null;  
+        }
+      },
+      created: function() {
+        // this.updateindex();
+
+      },
+      mounted: function() {
+        this.questions = questions; 
+        this.updateindex();
+        // this.savedatabase();
+
+        console.log(questions)
+        console.log('asdfasdf')
+
+      },
+      updated: function(){
+        // this.updateindex();
+
+      }
+    });
+    
+
+  </script>
+</body>
+
+</html>
