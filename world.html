@@ -10,88 +10,267 @@
   <link rel="apple-touch-icon" href="images/tiles/apple-touch-icon.png">
   <link href="https://fonts.googleapis.com/css?family=Libre+Baskerville:400,700" rel="stylesheet" type="text/css">
   <link rel="stylesheet" href="styles/vendor/normalize.min.css">
-
-    <link rel="stylesheet" href="styles/master.min.css">
-
-    <script src="scripts/vendor/modernizr-2.8.3.min.js"></script>
-  <script src="scripts/vendor/hammer.min.js"></script>
+  <link rel="stylesheet" href="styles/master.min.css">
+  <script src="scripts/vendor/modernizr-2.8.3.min.js"></script>
+  <!-- <script src="scripts/vendor/hammer.min.js"></script>     -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.10/vue.common.dev.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js" integrity="sha256-eVNjHw5UeU0jUqPPpZHAkU1z4U+QFBBY488WvueTm88=" crossorigin="anonymous"></script>
+  <style>    
+    .hide {
+        max-height: 0px !important;
+        opacity: 0 !important;
+        overflow: hidden !important;
+        padding: 0 !important;
+      }
+      .active {
+        max-height: 100vh !important;
+        opacity: 1 !important;
+        overflow: hidden !important;
+        transition: .5s ease all;
+      }
+  </style>
 </head>
 
 <body>
 
-
-    <main id="page_world">
+  <main id="page_world">
     <div class="page">
-
 
       <img id="hero" src="images/group.png" alt="">
 
-
-
-                        <section id="section_questions">
+      <section id="section_questions">
         <div class="row active" data-choice="0">
-          <div class="title">
+          <div class="title" @click="togglesection(0)">
             <h2>Introduction</h2>
           </div>
         </div>
-        <div class="row" data-choice="1">
-          <div class="title">
-            <h2>Q1</h2><p>What do you hope to learn today? (select one)</p>
+
+        <div v-for="(question, qi) in questions" class="row" data-choice="qi">
+          <div class="title" @click="togglesection(qi+1)">
+            <h2>Q{{qi+1}}</h2><p>{{question.question}}</p>
           </div>
-          <div class="answers">
-            <ul id="world_answers_1">
+          <div class="answers" :class="active[0] === qi ? 'active' : 'hide'">
+            <ul :id="'world_answers_' + qi">
+              <li v-for="answer in question.submittedanswers">
+                {{answer.text}}
+              </li>
             </ul>
           </div>
         </div>
-        <div class="row" data-choice="2">
-          <div class="title">
-            <h2>Q2</h2><p>Of the ABM topics discussed, which are you most interested in learning more about?</p>
-          </div>
-          <div class="answers">
-            <ul id="world_answers_2">
-            </ul>
-          </div>
-        </div>
-        <div class="row" data-choice="3">
-          <div class="title">
-            <h2>Q3</h2><p>In your opinion, where is ABM in the hype cycle?</p>
-          </div>
-          <div class="answers">
-            <ul id="world_answers_3">
-            </ul>
-          </div>
-        </div>
-        <div class="row" data-choice="4">
-          <div class="title">
-            <h2>Q4</h2><p>Which case study are you most interested in April Six presenting?</p>
-          </div>
-          <div class="answers">
-            <ul id="world_answers_4">
-            </ul>
-          </div>
-        </div>
+
       </section>
 
-
-                </div>
+    </div>
   </main>
 
     <footer>
     <img src="images/logos.png" alt="">
   </footer>
 
-
-
-      <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+  <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
   <script>
     window.jQuery || document.write('<script src="js/vendor/jquery-3.2.1.min.js"><\/script>')
   </script>
+  <script src="https://www.gstatic.com/firebasejs/4.5.0/firebase.js"></script>
+  <!-- <script src="scripts/master.min.js"></script> -->
+  <script src="scripts/apikey.js"></script>
 
-    <script src="https://www.gstatic.com/firebasejs/4.5.0/firebase.js"></script>
+  <script>  
 
 
+      var check;
+      var vm = new Vue({
+          el: '#page_world',
+          data: function() { 
+            return {
+              active: '',
+              questions: [],
+              numofquestions: [],
+              timeid: Date.now(),
+            }
+          },
+          methods: {
+            copy: function(obj) {
+              return JSON.parse(JSON.stringify(obj));
+            },
+            reload: function() {
+              this.timeid = Date.now(); //forces re-load of data
 
-      <script src="scripts/master.min.js"></script>
+            },
+            // createanswer:  function(answerset, answervalue) {
+            //   var answerid = Date.now();
+            //   db.ref("answers/" + answerset + "/" + answerid).set({
+            //       new: true,
+            //       text: answervalue
+            //   })
+            // },
+            closeWorld() {
+              $("#page_home").length || $("#page_world").length && (
+                  leaving = true, 
+                  db.ref("worldOpen").set(false), 
+                  worldOpen = false
+              )
+            },
+            showSection(thissection){
+              // when triggered - bring up the correct section in the world page, and close the rest
+              $("#page_home")
+                  .find(thissection)
+                  .slideDown()
+                  .siblings("section")
+                      .slideUp(),
+
+              // and bring up the correct section in the index pages, and close the rest
+              $("#section_questions .row")
+                  .eq(this.active)
+                  .addClass("active")
+                  .siblings(".row")
+                      .removeClass("active")
+            },
+            // sendQuestion: function(i){
+            //   console.log('sent question');
+            //   console.log(i);
+
+            //   if (this.questions[i].chosenanswer === undefined ){
+            //     this.questions[i].status = "nonanswer"
+
+            //   } else if ( this.questions[i].status !== 'answered') {
+            //     var time = Date.now();
+
+            //     firebase.database().ref(`questions/${i}/submittedanswers/${time}`).set({ new: true, text: this.questions[i].chosenanswer });
+            //     this.questions[i].status = 'answered';
+            //     console.log(this.questions[i].chosenanswer);
+            //   } else {
+            //     console.log(this.questions[i].status);
+
+            //   }
+            //   this.timeid = Date.now();
+              
+            // },
+            // setSwipe: function() {
+            //   questions = this.copy(this.questions);
+            //   questions.forEach(function(q,ii){
+            //     var i = ii + 1;
+            //     let thissec = document.querySelector(`#section_${i}`);
+            //     let manager = new Hammer.Manager(thissec);
+            //     let swipe = new Hammer.Swipe(thissec);
+            //     manager.add(swipe);
+            //     manager.on("swipe", function() {
+            //       vm.sendQuestion(ii);
+            //     })
+            //   })
+              
+            // },
+            // submitform:  function(thisform) {
+            //   var useranswer = $(thisform).find(".user-answer"),
+            //   answervalue = useranswer.val() || [];
+              
+            //   // console.log(answervalue.length)
+            //   if (answervalue.length !== 0) {
+            //       $(thisform).find("form").submit()
+
+            //   } else {
+            //       d = true;
+            //   }
+            // },
+            togglesection: function(i){
+              this.active = [i];
+              this.updateActive;
+              firebase.database().ref(`activeSection`).set(i);
+              this.reload();
+            },
+            updateActive: function() {
+              var activeref = firebase.database().ref('/activeSection'), 
+                  activeSection = [];
+
+              activeref.once('value').then(function(snapshot) {
+                snapshot !== undefined ? activeSection.push(snapshot.val()) : null;
+              });
+
+              this.active = activeSection;
+
+              
+            },
+            updateQuestions: function(){
+
+              var questions = [],
+                  qref = firebase.database().ref('/questions'),
+                  num = [];
+
+              qref.once('value').then(function(snapshot) {
+                snapshot.val().forEach( function(a, i) { 
+                  a !== undefined ? questions.push(a) : null;
+                  questions[i].status = 'waiting';
+                  questions[i].chosenanswer = undefined;
+                });
+                num.push(snapshot.val().length);
+              });
+              console.log(num)
+              this.questions = questions;
+              this.numofquestions = num; 
+            },
+          },
+          beforeMount: function() {
+
+          // Your web app's Fiwrebase configuration
+            var firebaseConfig = {
+              apiKey: "AIzaSyADsCeNsb2yV8AIN-TTmoLsfhZ_ESrsi8M",
+              authDomain: "test-swipe-app.firebaseapp.com",
+              databaseURL: "https://test-swipe-app.firebaseio.com",
+              projectId: "test-swipe-app",
+              storageBucket: "test-swipe-app.appspot.com",
+              messagingSenderId: "513276763632",
+              appId: "1:513276763632:web:d94bea88ed80c82b815135",
+              measurementId: "G-3Z5SCRNLB0"
+            };
+            firebase.initializeApp(firebaseConfig);
+
+            var db = firebase.database();
+
+            this.updateQuestions();
+            this.updateActive();
+
+            var activeref = firebase.database().ref('/activeSection');
+
+            activeref.on("value", function(a) {
+                // activeSection = a.val();
+                vm.updateActive();
+                vm.reload();
+            });
+                     
+            var worldcheck;
+            
+            // setInterval(function() {
+            //     // if there are no other pages open, and leaving has not been set, set worldOpen to true
+            //     $("#page_home").length || 
+            //     ($("#page_world").length && !leaving ? 
+            //         (
+            //             db.ref("worldOpen").set(true), 
+            //             worldcheck = true
+            //         ) : 
+            //         (
+            //             db.ref("worldOpen").set(false), 
+            //             worldcheck = false
+            //         )
+            //     )
+            // }), 
+
+            check = true;
+          },
+          updated: function(){
+            
+            if (check === true) {
+              check = false;
+              // setTimeout(this.setSwipe(), 3000)
+              
+
+            }
+            
+
+          }
+
+      });
+      
+    </script>
 
 
 </body>
